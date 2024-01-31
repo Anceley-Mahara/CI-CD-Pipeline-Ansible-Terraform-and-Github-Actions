@@ -1,0 +1,54 @@
+---
+- name: Install Docker and AWS CLI
+  hosts: instance1
+  become: yes
+
+  tasks:
+  - name: Install required system packages
+    apt:
+      name: "{{ packages }}"
+      state: present
+      update_cache: yes
+    vars:
+      packages:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+    when: ansible_os_family == "Debian"
+
+  - name: Install Docker
+    block:
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.dockerapp.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.dockerapp.com/linux/ubuntu {{ ansible_lsb.codename }} stable
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: yes
+    when: ansible_os_family == "Debian"
+
+  - name: Install AWS CLI
+    block:
+    - name: Download AWS CLI
+      get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+
+    - name: Unarchive AWS CLI
+      unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp
+        remote_src: yes
+
+    - name: Run AWS CLI install script
+      command: /tmp/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+    when: ansible_os_family == "Debian"
